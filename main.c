@@ -1,8 +1,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdlib.h>
+#include <time.h>
 #define VELIKOST 10
 #define NUMBER_OF_MOBS 3
+#define SAFEZONE 2
+
 typedef struct{
     int x_ax;
     int y_ax;
@@ -93,7 +97,75 @@ plan_h fill_plan(plan_h plan, gold_h gold, player_h player, mobs mobs){
     }
     return plan;
 }
+int isinSafezone(gold_h gold, int positionX, int positionY){
+    if (abs(gold.position.x_ax - positionX) < SAFEZONE && abs(gold.position.y_ax - positionY) < SAFEZONE ){
+        return 1;
+    }
+    return 0;
+}
+
+
+
+mobs move_mobs(mobs mobs, gold_h gold, player_h player){
+    for (int i = 0; i < NUMBER_OF_MOBS; i++){
+        mob mob = mobs.mob[i];
+        if (mob.speed > 3 || rand()%2 == 1){
+            // move
+            if (mob.iq > 5 || rand()%6 == 1){
+                if (abs(gold.position.y_ax - mob.position.y_ax)> abs(gold.position.x_ax - mob.position.x_ax)){
+                    if (gold.position.y_ax - mob.position.y_ax >0){
+                        mob.position.y_ax++;
+                    }
+                    else{
+                        mob.position.y_ax--;
+                    }
+                }
+                else{
+                    if (gold.position.x_ax - mob.position.x_ax >0){
+                        mob.position.x_ax++;
+                    }
+                    else{
+                        mob.position.x_ax--;
+                    }
+                }
+            }
+            else if (mob.iq > 3 || rand()%3 == 1){
+                // know where
+                if (abs(player.position.y_ax - mob.position.y_ax)> abs(player.position.x_ax - mob.position.x_ax)){
+                    if (player.position.y_ax - mob.position.y_ax > 0){
+                        mob.position.y_ax++;
+                    }
+                    else{
+                        mob.position.y_ax--;
+                    }
+                }
+                else{
+                    if (player.position.x_ax - mob.position.x_ax >0){
+                        mob.position.x_ax++;
+                    }
+                    else{
+                        mob.position.x_ax--;
+                    }
+                }
+            }
+            else {
+                //dont know
+                int a = rand() % 4;
+                switch (a){
+                    case 0: mob.position.x_ax--;break;
+                    case 1: mob.position.x_ax++;break;
+                    case 2: mob.position.y_ax--;break;
+                    case 3: mob.position.y_ax++;break;
+                }
+            }
+        }
+        if (isinSafezone(gold, mob.mobs[i].x_ax))
+        mobs.mob[i] = mob;
+    }
+    return mobs;
+}
 int main(){
+    srand(time(NULL));
     // init player
 
     int playerX, playerY, treasureX, treasureY;
@@ -146,6 +218,7 @@ int main(){
         player = check_if_valid(player);
         plan = fill_plan(plan, gold, player, mobs);
         field_not_equal = isequal(player, gold);
+        mobs = move_mobs(mobs, gold, player);
     }while(!field_not_equal);
     draw_plan(plan, gold, player);
     victory();
