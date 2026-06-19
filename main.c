@@ -3,7 +3,7 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <time.h>
-#define VELIKOST 10
+#define WIDTHEIGHT_OF_FIELD 10
 #define NUMBER_OF_MOBS 3
 #define SAFEZONE 2
 
@@ -14,11 +14,11 @@ typedef struct{
 }field_h;
 
 typedef struct{
-    field_h field[VELIKOST];
+    field_h field[WIDTHEIGHT_OF_FIELD];
 }row_h;
 
 typedef struct{
-    row_h row[VELIKOST];
+    row_h row[WIDTHEIGHT_OF_FIELD];
 }plan_h;
 
 typedef struct{
@@ -46,9 +46,9 @@ void draw_plan(plan_h plan, gold_h gold, player_h player){
     gold_ya = gold.position.y_ax;
     player_xa = player.position.x_ax;
     player_ya = player.position.y_ax;
-    for (int y = 0; y < VELIKOST; y++) {
+    for (int y = 0; y < WIDTHEIGHT_OF_FIELD; y++) {
         printf("\n");
-        for (int x = 0; x < VELIKOST; x++) {
+        for (int x = 0; x < WIDTHEIGHT_OF_FIELD; x++) {
             printf("%c", plan.row[y].field[x].fill);
         }
     }
@@ -66,18 +66,18 @@ int isequal(player_h player, gold_h gold){
     return 0;
 }
 void victory(void){
-    printf("Vyhral jsi!");
+    printf("You won!");
 }
 player_h check_if_valid(player_h player){
     if (player.position.x_ax < 0){player.position.x_ax++;}
-    if (player.position.x_ax >= VELIKOST){player.position.x_ax--;}
+    if (player.position.x_ax >= WIDTHEIGHT_OF_FIELD){player.position.x_ax--;}
     if (player.position.y_ax < 0){player.position.y_ax++;}
-    if (player.position.y_ax >= VELIKOST){player.position.y_ax--;}
+    if (player.position.y_ax >= WIDTHEIGHT_OF_FIELD){player.position.y_ax--;}
     return player;
 }
 plan_h fill_plan(plan_h plan, gold_h gold, player_h player, mobs mobs){
-    for (int y = 0; y < VELIKOST; y++) {
-        for (int x = 0; x < VELIKOST; x++) {
+    for (int y = 0; y < WIDTHEIGHT_OF_FIELD; y++) {
+        for (int x = 0; x < WIDTHEIGHT_OF_FIELD; x++) {
             if (player.position.x_ax == x && player.position.y_ax == y){
                 plan.row[y].field[x].fill = 'P';
             }
@@ -159,7 +159,31 @@ mobs move_mobs(mobs mobs, gold_h gold, player_h player){
                 }
             }
         }
-        if (isinSafezone(gold, mob.mobs[i].x_ax))
+        if (isinSafezone(gold, mobs.mob[i].position.x_ax,mobs.mob[i].position.y_ax)){
+            int ygo = gold.position.y_ax;
+            int xgo = gold.position.x_ax;
+            int ymo = mobs.mob[i].position.y_ax;
+            int xmo = mobs.mob[i].position.x_ax;
+            
+            //
+
+            if (abs(ygo - ymo) > SAFEZONE){
+                if (ygo - ymo > 0){
+                    mobs.mob[i].position.y_ax--;
+                }
+                else{
+                    mobs.mob[i].position.y_ax++;
+                }
+            }
+            else{
+                if (xgo - xmo > 0){
+                    mobs.mob[i].position.x_ax--;
+                }
+                else{
+                    mobs.mob[i].position.x_ax++;
+                }
+            }
+        }
         mobs.mob[i] = mob;
     }
     return mobs;
@@ -194,8 +218,8 @@ int main(){
     // define plan
 
     plan_h plan;
-    for (int y = 0; y < VELIKOST; y++) {
-        for (int x = 0; x < VELIKOST; x++) {
+    for (int y = 0; y < WIDTHEIGHT_OF_FIELD; y++) {
+        for (int x = 0; x < WIDTHEIGHT_OF_FIELD; x++) {
             plan.row[y].field[x].x_ax = x;
             plan.row[y].field[x].y_ax = y;
         }
@@ -205,7 +229,7 @@ int main(){
 
 
     char where;
-    int field_not_equal;
+    int field_is_equal;
     do{
         draw_plan(plan, gold, player);
         where = get_direction();
@@ -217,9 +241,9 @@ int main(){
         }
         player = check_if_valid(player);
         plan = fill_plan(plan, gold, player, mobs);
-        field_not_equal = isequal(player, gold);
+        field_is_equal = isequal(player, gold);
         mobs = move_mobs(mobs, gold, player);
-    }while(!field_not_equal);
+    }while(!field_is_equal);
     draw_plan(plan, gold, player);
     victory();
 }

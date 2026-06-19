@@ -1,0 +1,27 @@
+name: C Compile CI
+
+# Workflow se spustí POUZE při pushnutí jakéhokoli tagu
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Compile main.c
+      run: |
+        gcc main.c -o my_program
+
+    # Volitelně si můžeš zkompilovaný binární soubor nechat od GitHubu schovat,
+    # abys ho mohl z webu rovnou stáhnout (tzv. Artifact)
+    - name: Upload binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: compiled-program
+        path: my_program
