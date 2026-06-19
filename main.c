@@ -65,8 +65,11 @@ int isequal(player_h player, gold_h gold){
     }
     return 0;
 }
-void victory(void){
+void isvictory(void){
     printf("You won!");
+}
+void islost(void){
+    printf("You lost!");
 }
 player_h check_if_valid(player_h player){
     if (player.position.x_ax < 0){player.position.x_ax++;}
@@ -85,7 +88,7 @@ plan_h fill_plan(plan_h plan, gold_h gold, player_h player, mobs mobs){
                 plan.row[y].field[x].fill = 'G';
             }
             else {
-                plan.row[y].field[x].fill = '#';
+                plan.row[y].field[x].fill = ' ';
             }
             for (int mob = 0; mob < NUMBER_OF_MOBS; mob++){
                 if (x == mobs.mob[mob].position.x_ax && y == mobs.mob[mob].position.y_ax){
@@ -169,24 +172,32 @@ mobs move_mobs(mobs mobs, gold_h gold, player_h player){
 
             if (abs(ygo - ymo) > SAFEZONE){
                 if (ygo - ymo > 0){
-                    mobs.mob[i].position.y_ax--;
+                    mob.position.y_ax--;
                 }
                 else{
-                    mobs.mob[i].position.y_ax++;
+                    mob.position.y_ax++;
                 }
             }
-            else{
+            else if(abs(xgo - xmo) > SAFEZONE){
                 if (xgo - xmo > 0){
-                    mobs.mob[i].position.x_ax--;
+                    mob.position.x_ax--;
                 }
                 else{
-                    mobs.mob[i].position.x_ax++;
+                    mob.position.x_ax++;
                 }
             }
         }
         mobs.mob[i] = mob;
     }
     return mobs;
+}
+int lost(player_h player, mobs mobs){
+    for (int i = 0; i<NUMBER_OF_MOBS;i++){
+        if (mobs.mob[i].position.x_ax == player.position.x_ax && mobs.mob[i].position.y_ax == player.position.y_ax){
+            return 1;
+        }
+    }
+    return 0;
 }
 int main(){
     srand(time(NULL));
@@ -230,6 +241,7 @@ int main(){
 
     char where;
     int field_is_equal;
+    int victory;
     do{
         draw_plan(plan, gold, player);
         where = get_direction();
@@ -242,8 +254,18 @@ int main(){
         player = check_if_valid(player);
         plan = fill_plan(plan, gold, player, mobs);
         field_is_equal = isequal(player, gold);
+        victory = isequal(player, gold);
+        if (!field_is_equal){
+            field_is_equal = lost(player, mobs);
+            victory = !lost(player, mobs);
+        }
         mobs = move_mobs(mobs, gold, player);
     }while(!field_is_equal);
     draw_plan(plan, gold, player);
-    victory();
+    if (victory){
+        isvictory();
+    }
+    else{
+        islost();
+    }
 }
