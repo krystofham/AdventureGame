@@ -19,13 +19,13 @@ jobs:
 
     - name: Compile main.c
       run: |
-        gcc main.c -o my_program
+        gcc main.c -o adventuregame
 
     # Tento krok vytvoří Release na GitHubu a nahraje do něj tvůj soubor
     - name: Create Release and Upload Asset
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        gh release create ${{ github.ref_name }} my_program \
+        gh release create ${{ github.ref_name }} adventuregame \
           --title "Release ${{ github.ref_name }}" \
           --notes "Automaticky vygenerovaný release pro tag ${{ github.ref_name }}"
