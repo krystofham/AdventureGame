@@ -19,7 +19,7 @@ jobs:
 
     - name: Compile main.c
       run: |
-        gcc main.c -o adventuregame
+        gcc src/main.c -o adventuregame
 
     # Tento krok vytvoří Release na GitHubu a nahraje do něj tvůj soubor
     - name: Create Release and Upload Asset
