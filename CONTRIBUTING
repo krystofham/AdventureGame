@@ -1,1 +1,17 @@
-C
+# How to contribute to the project
+
+## Structure
+
+*.github/workflows* - how does GH actins make bianry file
+*audits/* 
+    audit.py - you make this **before** PR between your last commit and PR. After this, special file is generated, that is for the maintainers. You may be asked few questions.
+*src* - code of project
+*.future* - the vision of the project. It is more like a vision rather than features, that are in GH issues, but are welcomed here too.
+*tests/* - tests. These are done with audits automatically, you dont need to get there.
+
+## Audits
+
+You need to generate 'audit'. This is for maintainers to have structured code, it bypasses test for you and other staff, that is automated.
+
+If you have some questions, feel free to ask.
+Krystof Ham, 2026

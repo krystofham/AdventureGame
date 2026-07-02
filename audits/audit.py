@@ -1,0 +1,11 @@
+def generateAudit():
+    test()
+    logs()
+    aiUsage()
+    git()
+    gitLeakes()
+    checkNewDependecies()
+    churnRate()
+    clangTidy()
+    clangFormat()
+    lizard()
