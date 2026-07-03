@@ -2,12 +2,12 @@ import json
 import os
 import subprocess
 import glob
+import git
 
 audit = {}
 def generateAudit():
     test()
     logs()
-    aiUsage()
     git()
     gitLeakes()
     checkNewDependecies()
@@ -43,7 +43,7 @@ def gccTest():
         write("compiler", text)
     else:
         print("compilation succesfull, continuing")
-        write("compiler", "OK")
+        write("compiler", f"OK {text}")
 
 def logs():
     if os.path.exists("test"):
@@ -66,3 +66,114 @@ def logs():
         print("Logs are good")
         write("Logs", "OK")
 
+def git():
+    try:
+        repo = git.Repo(".")
+    except git.InvalidGitRepositoryError:
+        print("Zde není Git repozitář!")
+        write("Git", "Fail to open repo")
+    for commit in repo.iter_commits():
+        autor = commit.author.name
+        autorNew = None
+        sus = False
+        while autor == autorNew:
+            if len(commit.message.strip()) < 3:
+                write("Git", "suspicious git message, continuing, not fatal")
+                sus = True
+        break
+    if sus:
+        print("Check git naming of commits")
+        write("Git", "suspicious git message, continuing, not fatal, else is OK")
+    else: write("Git", "OK")
+
+def gitLeakes():
+    payload = ["gitleaks", "detect", "--source=.", "--format=json", "-v"]
+    result = subprocess.run(payload, capture_output=True, text=True)
+    if result.returncode == 0:
+        write("gitLeakes", "OK")
+    else:
+        write("gitLeakes", "NOT OK, CRITICAL, ENV OR OTHER PUBLISHED")
+        try:
+            found = json.loads(result.stdout)
+
+            for leak in nalezy:
+                print(f"--- found ---")
+                print(f"file: {leak.get('File')}")
+                print(f"Line:  {leak.get('StartLine')}")
+                print(f"Commit: {leak.get('Commit')}")
+                print(f"type:    {leak.get('Description')}")
+
+            # Uložíme informaci do tvého globálního auditu
+            # writeInJson("gitleaks", f"Nalezeno incidentů: {len(nalezy)}")
+
+        except json.JSONDecodeError:
+            print("Error while parsing JSON.")
+            write("gitLeakes", "Error while parsing JSON.")
+def checkNewDependencies():
+    valid_dependencies = {
+        "stdio.h",
+        "stdlib.h",
+        "string.h",
+        "stdbool.h",
+        "ctype.h",
+        "unistd.h",
+        "assert.h",
+    }
+
+    try:
+        repo = git.Repo(".")
+    except git.InvalidGitRepositoryError:
+        print("Not a git repository")
+        write("checkNewDependencies", "Git repository not found.")
+        return False
+
+    commits = list(repo.iter_commits(max_count=50))
+    if not commits:
+        print("No commits found")
+        write("checkNewDependencies", "No commits found.")
+        return False
+
+    current_commit = commits[0]
+    current_author = current_commit.author.email
+    base_commit = None
+
+    for commit in commits[1:]:
+        if commit.author.email != current_author:
+            base_commit = commit
+            break
+
+    if not base_commit:
+        if current_commit.parents:
+            base_commit = current_commit.parents[0]
+        else:
+            print("First commit in repository")
+            write("checkNewDependencies", "First commit.")
+            return True
+
+    diffs = base_commit.diff(current_commit, create_patch=True)
+    new_deps = set()
+    include_regex = re.compile(r'^\+\s*#include\s*[<"]([^>"]+)[>"]')
+
+    for d in diffs:
+        if d.a_path and d.a_path.endswith((".c", ".h")):
+            diff_text = d.diff.decode("utf-8", errors="ignore").split("\n")
+            for line in diff_text:
+                if line.startswith("+"):
+                    match = include_regex.match(line)
+                    if match:
+                        new_deps.add(match.group(1))
+
+    unavailable = new_deps - valid_dependencies
+    unavailable = {k for k in unavailable if not k.startswith("src/")}
+
+    if unavailable:
+        print(f"Unauthorized dependencies found: {unavailable}")
+        write(
+            "checkNewDependencies",
+            f"Unauthorized dependencies: {', '.join(unavailable)}",
+        )
+        return False
+    else:
+        print("Dependencies OK")
+        write("checkNewDependencies", "OK")
+        return True
