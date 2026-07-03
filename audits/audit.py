@@ -4,18 +4,20 @@ import subprocess
 import glob
 import re
 import git
-
+import lizard
 audit = {}
+
 def generateAudit():
+    global audit
     test()
     logs()
-    git()
+    checkGit()
     gitLeakes()
-    checkNewDependecies()
+    checkNewDependencies()
     clangTidy()
     clangFormat()
-    lizard()
-    pushgit()
+    runLizard()
+    print(audit)
 
 
 # Wirte into json file
@@ -35,7 +37,22 @@ def test():
 
 def gccTest():
     # gcc -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Werror src/main.c -o test
-    result = subprocess.run("gcc", "-Wall", "-Wextra", "-Wpedantic", "-Wshadow", "-Wconversion", "-Werror", "../src/main.c", "-o", "test", capture_output=True, text=True)
+    result = subprocess.run(
+        [
+            "gcc",
+            "-Wall",
+            "-Wextra",
+            "-Wpedantic",
+            "-Wshadow",
+            "-Wconversion",
+            "-Werror",
+            "../src/main.c",
+            "-o",
+            "test",
+        ],
+        capture_output=True,
+        text=True,
+    )
     text = result.stdout
     if result.returncode != 0:
         print("Test ended with output of:", text)
@@ -54,7 +71,7 @@ def logs():
     log_files = glob.glob("../logs/*.log")
 
     for file in log_files:
-        with open(soubor, "r", encoding="utf-8") as f:
+        with open(file, "r", encoding="utf-8") as f:
             log_output += f.read()
 
     log_output = log_output.strip()
@@ -66,49 +83,92 @@ def logs():
         print("Logs are good")
         write("Logs", "OK")
 
-def git():
+import git
+
+
+def checkGit():
     try:
-        repo = git.Repo(".")
+        repo = git.Repo("..")
     except git.InvalidGitRepositoryError:
-        print("Zde není Git repozitář!")
+        print("Not a git repository")
         write("Git", "Fail to open repo")
-    for commit in repo.iter_commits():
-        autor = commit.author.name
-        autorNew = None
-        sus = False
-        while autor == autorNew:
-            if len(commit.message.strip()) < 3:
-                write("Git", "suspicious git message, continuing, not fatal")
-                sus = True
-        break
-    if sus:
+        return False
+
+    commits = list(repo.iter_commits())
+    if not commits:
+        write("Git", "OK, no commits")
+        return True
+
+    target_author = commits[0].author.name
+    suspicious_found = False
+
+    for commit in commits:
+        if commit.author.name != target_author:
+            break
+
+        commit_message = commit.message.strip()
+        if len(commit_message) < 3:
+            write("Git", f"Suspicious git message: '{commit_message}'")
+            suspicious_found = True
+
+    if suspicious_found:
         print("Check git naming of commits")
-        write("Git", "suspicious git message, continuing, not fatal, else is OK")
-    else: write("Git", "OK")
-
-def gitLeakes():
-    payload = ["gitleaks", "detect", "--source=.", "--format=json", "-v"]
-    result = subprocess.run(payload, capture_output=True, text=True)
-    if result.returncode == 0:
-        write("gitLeakes", "OK")
+        write(
+            "Git",
+            "Suspicious git message found for current user, but not fatal",
+        )
     else:
-        write("gitLeakes", "NOT OK, CRITICAL, ENV OR OTHER PUBLISHED")
-        try:
-            found = json.loads(result.stdout)
+        write("Git", "OK")
+        
+def gitLeakes():
+    report_file = "leaks.json"
+    # flag --format nahrazen za -r (report-path)
+    payload = ["gitleaks", "detect", "--source=..", f"-r={report_file}", "-v"]
 
-            for leak in nalezy:
-                print(f"--- found ---")
-                print(f"file: {leak.get('File')}")
-                print(f"Line:  {leak.get('StartLine')}")
-                print(f"Commit: {leak.get('Commit')}")
-                print(f"type:    {leak.get('Description')}")
+    try:
+        result = subprocess.run(payload, capture_output=True, text=True)
+    except FileNotFoundError:
+        print("Gitleaks not installed.")
+        write("gitLeakes", "Gitleaks executable not found.")
+        return False
 
-            # Uložíme informaci do tvého globálního auditu
-            # writeInJson("gitleaks", f"Nalezeno incidentů: {len(nalezy)}")
+    # Gitleaks vrací 0 pokud nic nenašel
+    if result.returncode == 0:
+        print("Gitleaks passed: No secrets found.")
+        write("gitLeakes", "OK")
+        # Pro jistotu smažeme starý report, pokud by existoval
+        if os.path.exists(report_file):
+            os.remove(report_file)
+        return True
 
-        except json.JSONDecodeError:
-            print("Error while parsing JSON.")
-            write("gitLeakes", "Error while parsing JSON.")
+    # Pokud vrátil jiný kód než 0, buď našel leaky, nebo selhal
+    if not os.path.exists(report_file):
+        print(f"Gitleaks execution failed: {result.stderr.strip()}")
+        write("gitLeakes", f"Gitleaks error: {result.stderr.strip()[:50]}")
+        return False
+
+    # Načetly se leaky ze souboru
+    write("gitLeakes", "NOT OK, CRITICAL, ENV OR OTHER PUBLISHED")
+    try:
+        with open(report_file, "r", encoding="utf-8") as f:
+            found = json.load(f)
+
+        for leak in found:
+            print(f"--- found ---")
+            print(f"file: {leak.get('File')}")
+            print(f"Line:  {leak.get('StartLine')}")
+            print(f"Commit: {leak.get('Commit')}")
+            print(f"type:    {leak.get('Description')}")
+
+    except json.JSONDecodeError:
+        print("Error while parsing Gitleaks report file.")
+        write("gitLeakes", "Error while parsing JSON.")
+    finally:
+        # Po analýze dočasný soubor s leaky smažeme
+        if os.path.exists(report_file):
+            os.remove(report_file)
+
+    return False
 
 def checkNewDependencies():
     valid_dependencies = {
@@ -122,7 +182,7 @@ def checkNewDependencies():
     }
 
     try:
-        repo = git.Repo(".")
+        repo = git.Repo("..")
     except git.InvalidGitRepositoryError:
         print("Not a git repository")
         write("checkNewDependencies", "Git repository not found.")
@@ -179,7 +239,7 @@ def checkNewDependencies():
         write("checkNewDependencies", "OK")
         return True
 
-def clangTidy(target_file="src/main.c"):
+def clangTidy(target_file="../src/main.c"):
     checks = "bugprone-*,clang-analyzer-*,cert-*"
 
     command = [
@@ -214,7 +274,7 @@ def clangTidy(target_file="src/main.c"):
         write("runClangTidy", "OK")
         return True
 
-def clangFormat(target_file="src/main.c"):
+def clangFormat(target_file="../src/main.c"):
     command = [
         "clang-format",
         "--dry-run",
@@ -240,3 +300,35 @@ def clangFormat(target_file="src/main.c"):
         print("Code formatting is perfect")
         write("runClangFormat", "OK")
         return True
+
+def runLizard(target_file="../src/main.c", max_complexity=15):
+    try:
+        analysis = lizard.analyze_file(target_file)
+    except Exception as e:
+        print(f"Lizard analysis failed: {e}")
+        write("runLizard", "Lizard analysis failed.")
+        return False
+
+    complex_functions = []
+
+    for func in analysis.function_list:
+        if func.cyclomatic_complexity > max_complexity:
+            complex_functions.append(
+                f"{func.name} (CCN: {func.cyclomatic_complexity}, Lines: {func.length})"
+            )
+
+    if complex_functions:
+        print(
+            f"High cyclomatic complexity detected in: {', '.join(complex_functions)}"
+        )
+        write(
+            "runLizard",
+            f"Too complex functions found: {', '.join(complex_functions)}",
+        )
+        return False
+    else:
+        print("Code complexity is well within limits")
+        write("runLizard", "OK")
+        return True
+
+generateAudit()
