@@ -1,8 +1,10 @@
 import json
 import os
 import subprocess
+import glob
+
+audit = {}
 def generateAudit():
-    inputs()
     test()
     logs()
     aiUsage()
@@ -13,96 +15,54 @@ def generateAudit():
     clangTidy()
     clangFormat()
     lizard()
+    pushgit()
 
-GLOBAL_GIT_USERNAME = None
 
 # Wirte into json file
-def writeInJson(arg, value, filename=None, clearFile=False):
-    global GLOBAL_GIT_USERNAME
-    if not filename:
-        filename = f"auditsFiles/{GLOBAL_GIT_USERNAME}.audit"
-        
-    if not clearFile and os.path.exists(filename) and os.path.getsize(filename) > 0:
-        with open(filename, "r", encoding="utf-8") as file:
-            try:
-                data = json.load(file)
-            except json.JSONDecodeError:
-                data = {}
-    else:
-        data = {}
+def write(arg, value, clear_audit=False):
+    global audit
 
-    data[arg] = value
+    if clear_audit:
+        audit = {}
 
-    with open(filename, "w", encoding="utf-8") as file:
-        json.dump(data, file, indent=4, ensure_ascii=False)
+    audit[arg] = value
 
-# Safe input
-def inp(ques, poss=[]):
-    if poss != []:
-        print(f"Possible answer: {*poss}", sep='\n')
-    validAns = False
-    while not validAns:
-        ans = input(ques)
-        if poss != []:
-            if ans in poss:
-                validAns = True
-        else:
-            validAns = True
-    return validAns
-
-#input git username
-def inputs():
-    global GLOBAL_GIT_USERNAME
-    nameOfc, nameNorm = None
-    try:
-        nameOfc = subprocess.check_output(["gh", "auth", "status"], stderr=subprocess.STDOUT).decode("utf-8")
-    except:
-        pass
-    try: 
-        nameNorm = subprocess.check_output(["git", "config", "user.name"]).decode("utf-8").strip()
-    except:
-        pass
-    knowName = False
-    if nameNorm:
-        ans = inp(f"Is your username on gh {nameNorm}", ["yes", "no"])
-        if ans == "yes":
-            name = ans
-            knowName = True
-    if nameOfc and not knowName:
-        ans = inp(f"Is your username {nameOfc}", ["yes", "no"])
-        if ans == "yes":
-            name = ans
-            knowName = True
-    
-    
-    if (knowName and name == None) or (not knowName and name != None):
-        raise ValueError("knowName is not validing name")
-    
-    if not knowName:
-        name = inp("Whats your git username?")
-
-    GLOBAL_GIT_USERNAME = name
-    
 # tests
 def test():
     c_source_file = "game.c"
     binary_output = "./test"
-    compilator = inp("What is you compiler?", ["gcc", "clang", "msvc", "other"])
-    if compilator == "other":
-        compilator = inp("What is your compilator? \n NOTE: If you are using some other compilator, you are more than welcomed to contribute into our test() function in audit.py")
-    structOfTest = {
-        "typeOfCompilator": compilator,
-        "warnings": None,
-        "valid": False
-    }
-    
-    match compilator:
-        case "gcc":
-            gccTest()
-        case "clang": 
-            clangTest()
-        case "msvc":
-            msvcTest()
-        case "other":
-            pass
-    subprocess.run()
+    gccTest()
+
+def gccTest():
+    # gcc -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Werror src/main.c -o test
+    result = subprocess.run("gcc", "-Wall", "-Wextra", "-Wpedantic", "-Wshadow", "-Wconversion", "-Werror", "../src/main.c", "-o", "test", capture_output=True, text=True)
+    text = result.stdout
+    if result.returncode != 0:
+        print("Test ended with output of:", text)
+        print("Compilation error. Abording request.")
+        write("compiler", text)
+    else:
+        print("compilation succesfull, continuing")
+        write("compiler", "OK")
+
+def logs():
+    if os.path.exists("test"):
+        os.chmod("test", 0o755)
+        subprocess.run(["./test"], capture_output=True)
+
+    log_output = ""
+    log_files = glob.glob("../logs/*.log")
+
+    for file in log_files:
+        with open(soubor, "r", encoding="utf-8") as f:
+            log_output += f.read()
+
+    log_output = log_output.strip()
+
+    if log_output != "":
+        print("Logs are not empty:\n", log_output)
+        write("logs", f"logs are not empty after production use: {log_output}")
+    else:
+        print("Logs are good")
+        write("Logs", "OK")
+
