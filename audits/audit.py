@@ -2,6 +2,7 @@ import json
 import os
 import subprocess
 import glob
+import re
 import git
 
 audit = {}
@@ -11,7 +12,6 @@ def generateAudit():
     git()
     gitLeakes()
     checkNewDependecies()
-    churnRate()
     clangTidy()
     clangFormat()
     lizard()
@@ -109,6 +109,7 @@ def gitLeakes():
         except json.JSONDecodeError:
             print("Error while parsing JSON.")
             write("gitLeakes", "Error while parsing JSON.")
+
 def checkNewDependencies():
     valid_dependencies = {
         "stdio.h",
@@ -176,4 +177,66 @@ def checkNewDependencies():
     else:
         print("Dependencies OK")
         write("checkNewDependencies", "OK")
+        return True
+
+def clangTidy(target_file="src/main.c"):
+    checks = "bugprone-*,clang-analyzer-*,cert-*"
+
+    command = [
+        "clang-tidy",
+        target_file,
+        f"-checks={checks}",
+        "--",
+        "-Wall",
+        "-Wextra",
+    ]
+
+    try:
+        result = subprocess.run(command, capture_output=True, text=True)
+    except FileNotFoundError:
+        print("Clang-Tidy is not installed on this system")
+        write("runClangTidy", "Clang-Tidy executable not found.")
+        return False
+
+    output = result.stdout.strip()
+    errors = result.stderr.strip()
+
+    has_warnings = "warning:" in output or "error:" in output
+
+    if has_warnings:
+        print(f"Clang-Tidy found issues:\n{output}")
+        # Extract the first few lines of warnings for the log
+        summary = "\n".join(output.split("\n")[:3])
+        write("runClangTidy", f"Issues found: {summary}")
+        return False
+    else:
+        print("Clang-Tidy check passed successfully")
+        write("runClangTidy", "OK")
+        return True
+
+def clangFormat(target_file="src/main.c"):
+    command = [
+        "clang-format",
+        "--dry-run",
+        "-Werror",
+        "--style=LLVM",
+        target_file,
+    ]
+
+    try:
+        result = subprocess.run(command, capture_output=True, text=True)
+    except FileNotFoundError:
+        print("Clang-Format is not installed on this system")
+        write("runClangFormat", "Clang-Format executable not found.")
+        return False
+
+    if result.returncode != 0:
+        print("Clang-Format detected code style violations!")
+        write(
+            "runClangFormat", "Code style violation. Please run clang-format -i --style=LLVM src/main.c."
+        )
+        return False
+    else:
+        print("Code formatting is perfect")
+        write("runClangFormat", "OK")
         return True
