@@ -8,7 +8,7 @@
 *src* - code of project
 *.future* - the vision of the project. It is more like a vision rather than features, that are in GH issues, but are welcomed here too.
 *tests/* - tests. These are done with audits automatically, you dont need to get there.
-
+*logs/* - if something goes wrong, it should handle this and see what. Generated automatically
 ## Audits
 
 You need to generate 'audit'. This is for maintainers to have structured code, it bypasses test for you and other staff, that is automated.

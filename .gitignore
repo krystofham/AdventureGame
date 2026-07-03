@@ -2,3 +2,4 @@ test
 security/
 audits/auditMonthly.py
 audits/auditsFiles/
+audits/adminaudit.py
