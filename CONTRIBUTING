@@ -1,17 +1,25 @@
-# How to contribute to the project
+# How to Contribute to the Project
 
-## Structure
+Thank you for considering contributing to our project! Please follow these guidelines to keep the codebase clean and functional.
 
-*.github/workflows* - how does GH actins make bianry file
-*audits/* 
-    audit.py - you make this **before** PR between your last commit and PR. After this, special file is generated, that is for the maintainers. You may be asked few questions.
-*src* - code of project
-*.future* - the vision of the project. It is more like a vision rather than features, that are in GH issues, but are welcomed here too.
-*tests/* - tests. These are done with audits automatically, you dont need to get there.
-*logs/* - if something goes wrong, it should handle this and see what. Generated automatically
-## Audits
+## Project Structure
 
-You need to generate 'audit'. This is for maintainers to have structured code, it bypasses test for you and other staff, that is automated.
+* **.github/workflows/** – Contains GitHub Actions that automatically build the binary files.
+* **audits/** * `audit.py` – **Run this script before making a Pull Request.** It checks for naming conventions, potential errors, and formatting. If it passes successfully, it returns a JSON where everything is marked as `OK`.
+* **src/** – The core source code of the project.
+* **.future/** – The vision of the project. This is for long-term concepts and high-level ideas (specific features and bugs belong in GitHub Issues).
+* **tests/** – Automated tests. These run automatically alongside the audit script, so you don't need to run them manually.
+* **logs/** – System logs generated automatically if something goes wrong.
 
-If you have some questions, feel free to ask.
-Krystof Ham, 2026
+---
+
+## Pre-PR Audits
+
+Before opening a Pull Request, you **must run** `audit.py`. It is designed to catch almost all possible errors before the code reaches the repository.
+
+1. **If the script returns a JSON with `OK` everywhere:** You are good to go! Feel free to create your Pull Request.
+2. **If the script flags an error, but you believe your code is correct:** Open the Pull Request anyway, but please include a detailed description. Explain **what** the script returned and **why** you think your code is correct.
+
+If you ever feel stuck or have any questions, don't hesitate to ask for help!
+
+*Created by Krystof Ham, 2026*

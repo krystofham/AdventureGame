@@ -10,40 +10,40 @@ typedef struct {
   int x_ax;
   int y_ax;
   char fill;
-} field_h;
+} field_t;
 
 typedef struct {
-  field_h field[WIDTHEIGHT_OF_FIELD];
-} row_h;
+  field_t field[WIDTHEIGHT_OF_FIELD];
+} row_t;
 
 typedef struct {
-  row_h row[WIDTHEIGHT_OF_FIELD];
-} plan_h;
+  row_t row[WIDTHEIGHT_OF_FIELD];
+} plan_t;
 
 typedef struct {
-  field_h position;
-} player_h;
+  field_t position;
+} player_t;
 
 typedef struct {
-  field_h position;
-} gold_h;
+  field_t position;
+} gold_t;
 
 typedef struct {
-  field_h position;
+  field_t position;
   int iq;
   int speed;
-} mob;
+} mob_t;
 
 typedef struct {
-  mob mob[NUMBER_OF_MOBS];
-} mobs;
+  mob_t mob[NUMBER_OF_MOBS];
+} mobs_t;
 
-void draw_plan(plan_h plan, gold_h gold, player_h player) {
-  int xa, ya, gold_xa, gold_ya, player_xa, player_ya;
-  gold_xa = gold.position.x_ax;
-  gold_ya = gold.position.y_ax;
-  player_xa = player.position.x_ax;
-  player_ya = player.position.y_ax;
+void draw_plan(plan_t plan) {
+  // int xa, ya, gold_xa, gold_ya, player_xa, player_ya;
+  // gold_xa = gold.position.x_ax;
+  // gold_ya = gold.position.y_ax;
+  // player_xa = player.position.x_ax;
+  // player_ya = player.position.y_ax;
   for (int y = 0; y < WIDTHEIGHT_OF_FIELD; y++) {
     printf("\n");
     for (int x = 0; x < WIDTHEIGHT_OF_FIELD; x++) {
@@ -52,13 +52,14 @@ void draw_plan(plan_h plan, gold_h gold, player_h player) {
   }
   printf("\n");
 }
-char get_direction() {
-  char c;
-  while (isspace(c = getchar()))
-    ;
+int get_direction() {
+  int c = getchar();
+  while (c != EOF && c >= 0 && c <= 255 && isspace((unsigned char)c)) {
+    c = getchar();
+  }
   return c;
 }
-int isequal(player_h player, gold_h gold) {
+int isequal(player_t player, gold_t gold) {
   if (player.position.x_ax == gold.position.x_ax &&
       player.position.y_ax == gold.position.y_ax) {
     return 1;
@@ -67,7 +68,7 @@ int isequal(player_h player, gold_h gold) {
 }
 void isvictory(void) { printf("You won!"); }
 void islost(void) { printf("You lost!"); }
-player_h check_if_valid(player_h player) {
+player_t check_if_valid(player_t player) {
   if (player.position.x_ax < 0) {
     player.position.x_ax++;
   }
@@ -82,7 +83,7 @@ player_h check_if_valid(player_h player) {
   }
   return player;
 }
-plan_h fill_plan(plan_h plan, gold_h gold, player_h player, mobs mobs) {
+plan_t fill_plan(plan_t plan, gold_t gold, player_t player, mobs_t mobs) {
   for (int y = 0; y < WIDTHEIGHT_OF_FIELD; y++) {
     for (int x = 0; x < WIDTHEIGHT_OF_FIELD; x++) {
       if (player.position.x_ax == x && player.position.y_ax == y) {
@@ -102,7 +103,7 @@ plan_h fill_plan(plan_h plan, gold_h gold, player_h player, mobs mobs) {
   }
   return plan;
 }
-int isinSafezone(gold_h gold, int positionX, int positionY) {
+int isinSafezone(gold_t gold, int positionX, int positionY) {
   if (abs(gold.position.x_ax - positionX) < SAFEZONE &&
       abs(gold.position.y_ax - positionY) < SAFEZONE) {
     return 1;
@@ -110,12 +111,12 @@ int isinSafezone(gold_h gold, int positionX, int positionY) {
   return 0;
 }
 
-mobs move_mobs(mobs mobs, gold_h gold, player_h player) {
+mobs_t move_mobs(mobs_t mobs, gold_t gold, player_t player) {
   for (int i = 0; i < NUMBER_OF_MOBS; i++) {
-    mob mob = mobs.mob[i];
-    if (mob.speed > 3 || rand() % 2 == 1) {
+    mob_t mob = mobs.mob[i];
+    if (mob.speed > 3 || rand() % 2 == 1) { // NOLINT
       // move
-      if (mob.iq > 5 || rand() % 6 == 1) {
+      if (mob.iq > 5 || rand() % 6 == 1) { // NOLINT
         if (abs(gold.position.y_ax - mob.position.y_ax) >
             abs(gold.position.x_ax - mob.position.x_ax)) {
           if (gold.position.y_ax - mob.position.y_ax > 0) {
@@ -130,7 +131,7 @@ mobs move_mobs(mobs mobs, gold_h gold, player_h player) {
             mob.position.x_ax--;
           }
         }
-      } else if (mob.iq > 3 || rand() % 3 == 1) {
+      } else if (mob.iq > 3 || rand() % 3 == 1) { // NOLINT(cert-msc30-c)
         // know where
         if (abs(player.position.y_ax - mob.position.y_ax) >
             abs(player.position.x_ax - mob.position.x_ax)) {
@@ -148,7 +149,7 @@ mobs move_mobs(mobs mobs, gold_h gold, player_h player) {
         }
       } else {
         // dont know
-        int a = rand() % 4;
+        int a = rand() % 4; // NOLINT
         switch (a) {
         case 0:
           mob.position.x_ax--;
@@ -161,6 +162,8 @@ mobs move_mobs(mobs mobs, gold_h gold, player_h player) {
           break;
         case 3:
           mob.position.y_ax++;
+          break;
+        default:
           break;
         }
       }
@@ -192,7 +195,7 @@ mobs move_mobs(mobs mobs, gold_h gold, player_h player) {
   }
   return mobs;
 }
-int lost(player_h player, mobs mobs) {
+int lost(player_t player, mobs_t mobs) {
   for (int i = 0; i < NUMBER_OF_MOBS; i++) {
     if (mobs.mob[i].position.x_ax == player.position.x_ax &&
         mobs.mob[i].position.y_ax == player.position.y_ax) {
@@ -202,7 +205,8 @@ int lost(player_h player, mobs mobs) {
   return 0;
 }
 int main() {
-  srand(time(NULL));
+  srand((unsigned int)time( // NOLINT
+      NULL));               // NOLINT
   // init player
 
   int playerX, playerY, treasureX, treasureY;
@@ -210,14 +214,14 @@ int main() {
   playerY = 0;
   treasureX = 2;
   treasureY = 2;
-  player_h player;
-  gold_h gold;
+  player_t player;
+  gold_t gold;
   gold.position.x_ax = treasureX;
   gold.position.y_ax = treasureY;
   player.position.x_ax = playerX;
   player.position.y_ax = playerY;
 
-  mobs mobs;
+  mobs_t mobs;
   // init mobs
   int iq[] = {1, 5, 3};
   int speed[] = {6, 2, 2};
@@ -229,7 +233,7 @@ int main() {
   }
   // define plan
 
-  plan_h plan;
+  plan_t plan;
   for (int y = 0; y < WIDTHEIGHT_OF_FIELD; y++) {
     for (int x = 0; x < WIDTHEIGHT_OF_FIELD; x++) {
       plan.row[y].field[x].x_ax = x;
@@ -238,24 +242,26 @@ int main() {
   }
   plan = fill_plan(plan, gold, player, mobs);
 
-  char where;
+  int where;
   int field_is_equal;
   int victory;
   do {
-    draw_plan(plan, gold, player);
+    draw_plan(plan);
     where = get_direction();
     switch (where) {
-    case 'a':
+    case 97:
       player.position.x_ax--;
       break;
-    case 's':
+    case 115:
       player.position.y_ax++;
       break;
-    case 'd':
+    case 100:
       player.position.x_ax++;
       break;
-    case 'w':
+    case 119:
       player.position.y_ax--;
+      break;
+    default:
       break;
     }
     player = check_if_valid(player);
@@ -268,7 +274,7 @@ int main() {
     }
     mobs = move_mobs(mobs, gold, player);
   } while (!field_is_equal);
-  draw_plan(plan, gold, player);
+  draw_plan(plan);
   if (victory) {
     isvictory();
   } else {

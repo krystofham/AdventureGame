@@ -5,19 +5,27 @@ import glob
 import re
 import git
 import lizard
-audit = {}
+import time
 
-def generateAudit():
+audit = {}
+PATH = "../src/main.c"
+GIT_REPO_PATH = ".."
+LOGS_PATH = "../logs/"
+def generateAudit(PATH, LOGS_PATH, GIT_REPO_PATH):
     global audit
-    test()
-    logs()
-    checkGit()
-    gitLeakes()
-    checkNewDependencies()
-    clangTidy()
-    clangFormat()
-    runLizard()
-    print(audit)
+    gccTest(PATH=PATH)
+    logs(LOGS_PATH=LOGS_PATH)
+    checkGit(GIT_REPO_PATH = GIT_REPO_PATH)
+    gitLeakes(GIT_REPO_PATH=GIT_REPO_PATH)
+    checkNewDependencies(GIT_REPO_PATH=GIT_REPO_PATH)
+    clangTidy(target_file=PATH)
+    clangFormat(target_file=PATH)
+    runLizard(target_file=PATH)
+    #valgrind()
+    #Magic Numbers
+    #integration test
+    #logic test
+    return print(audit)
 
 
 # Wirte into json file
@@ -29,13 +37,8 @@ def write(arg, value, clear_audit=False):
 
     audit[arg] = value
 
-# tests
-def test():
-    c_source_file = "game.c"
-    binary_output = "./test"
-    gccTest()
 
-def gccTest():
+def gccTest(PATH):
     # gcc -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Werror src/main.c -o test
     result = subprocess.run(
         [
@@ -46,29 +49,33 @@ def gccTest():
             "-Wshadow",
             "-Wconversion",
             "-Werror",
-            "../src/main.c",
+            PATH,
             "-o",
             "test",
         ],
         capture_output=True,
         text=True,
     )
-    text = result.stdout
+    text = result.stderr
     if result.returncode != 0:
         print("Test ended with output of:", text)
         print("Compilation error. Abording request.")
-        write("compiler", text)
+        write("compiler", f"Try run gcc -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Werror ../src/main.c -o test")
     else:
         print("compilation succesfull, continuing")
         write("compiler", f"OK {text}")
 
-def logs():
+def logs(LOGS_PATH = "../logs/"):
     if os.path.exists("test"):
         os.chmod("test", 0o755)
-        subprocess.run(["./test"], capture_output=True)
+        process = subprocess.Popen(["./test"])
+        time.sleep(1.5)
+        process.terminate()
+        process.wait()
+        print("Test run ended.")
 
     log_output = ""
-    log_files = glob.glob("../logs/*.log")
+    log_files = glob.glob(f"{LOGS_PATH}*.log")
 
     for file in log_files:
         with open(file, "r", encoding="utf-8") as f:
@@ -83,12 +90,11 @@ def logs():
         print("Logs are good")
         write("Logs", "OK")
 
-import git
 
 
-def checkGit():
+def checkGit(GIT_REPO_PATH = ".."):
     try:
-        repo = git.Repo("..")
+        repo = git.Repo(GIT_REPO_PATH)
     except git.InvalidGitRepositoryError:
         print("Not a git repository")
         write("Git", "Fail to open repo")
@@ -120,10 +126,10 @@ def checkGit():
     else:
         write("Git", "OK")
         
-def gitLeakes():
+def gitLeakes(GIT_REPO_PATH = ".."):
     report_file = "leaks.json"
     # flag --format nahrazen za -r (report-path)
-    payload = ["gitleaks", "detect", "--source=..", f"-r={report_file}", "-v"]
+    payload = ["gitleaks", "detect", f"--source={GIT_REPO_PATH}", f"-r={report_file}", "-v"]
 
     try:
         result = subprocess.run(payload, capture_output=True, text=True)
@@ -170,7 +176,7 @@ def gitLeakes():
 
     return False
 
-def checkNewDependencies():
+def checkNewDependencies(GIT_REPO_PATH = ".."):
     valid_dependencies = {
         "stdio.h",
         "stdlib.h",
@@ -182,7 +188,7 @@ def checkNewDependencies():
     }
 
     try:
-        repo = git.Repo("..")
+        repo = git.Repo(GIT_REPO_PATH)
     except git.InvalidGitRepositoryError:
         print("Not a git repository")
         write("checkNewDependencies", "Git repository not found.")
@@ -331,4 +337,5 @@ def runLizard(target_file="../src/main.c", max_complexity=15):
         write("runLizard", "OK")
         return True
 
-generateAudit()
+if __name__ == "__main__":
+    generateAudit(PATH, LOGS_PATH, GIT_REPO_PATH)
