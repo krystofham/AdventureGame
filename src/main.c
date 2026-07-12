@@ -54,7 +54,9 @@ void draw_plan(plan_t plan) {
 }
 int get_direction() {
   int c = getchar();
-  while (c != EOF && c >= 0 && c <= 255 && isspace((unsigned char)c)) {
+  while (
+      c != EOF &&
+      isspace((unsigned char)c)) { // NOLINT(clang-analyzer-security.ArrayBound)
     c = getchar();
   }
   return c;
@@ -110,62 +112,74 @@ int isinSafezone(gold_t gold, int positionX, int positionY) {
   }
   return 0;
 }
+mob_t move_mobs_move(mob_t mob, gold_t gold) {
+  if (abs(gold.position.y_ax - mob.position.y_ax) >
+      abs(gold.position.x_ax - mob.position.x_ax)) {
+    if (gold.position.y_ax - mob.position.y_ax > 0) {
+      mob.position.y_ax++;
+    } else {
+      mob.position.y_ax--;
+    }
+  } else {
+    if (gold.position.x_ax - mob.position.x_ax > 0) {
+      mob.position.x_ax++;
+    } else {
+      mob.position.x_ax--;
+    }
+  }
+  return mob;
+}
 
+mob_t move_mobs_know_where(player_t player, mob_t mob) {
+  if (abs(player.position.y_ax - mob.position.y_ax) >
+      abs(player.position.x_ax - mob.position.x_ax)) {
+    if (player.position.y_ax - mob.position.y_ax > 0) {
+      mob.position.y_ax++;
+    } else {
+      mob.position.y_ax--;
+    }
+  } else {
+    if (player.position.x_ax - mob.position.x_ax > 0) {
+      mob.position.x_ax++;
+    } else {
+      mob.position.x_ax--;
+    }
+  }
+  return mob;
+}
+mob_t move_mobs_dont_know(mob_t mob) {
+  int a = rand() % 4; // NOLINT
+  switch (a) {
+  case 0:
+    mob.position.x_ax--;
+    break;
+  case 1:
+    mob.position.x_ax++;
+    break;
+  case 2:
+    mob.position.y_ax--;
+    break;
+  case 3:
+    mob.position.y_ax++;
+    break;
+  default:
+    break;
+  }
+  return mob;
+}
 mobs_t move_mobs(mobs_t mobs, gold_t gold, player_t player) {
   for (int i = 0; i < NUMBER_OF_MOBS; i++) {
     mob_t mob = mobs.mob[i];
     if (mob.speed > 3 || rand() % 2 == 1) { // NOLINT
       // move
       if (mob.iq > 5 || rand() % 6 == 1) { // NOLINT
-        if (abs(gold.position.y_ax - mob.position.y_ax) >
-            abs(gold.position.x_ax - mob.position.x_ax)) {
-          if (gold.position.y_ax - mob.position.y_ax > 0) {
-            mob.position.y_ax++;
-          } else {
-            mob.position.y_ax--;
-          }
-        } else {
-          if (gold.position.x_ax - mob.position.x_ax > 0) {
-            mob.position.x_ax++;
-          } else {
-            mob.position.x_ax--;
-          }
-        }
-      } else if (mob.iq > 3 || rand() % 3 == 1) { // NOLINT(cert-msc30-c)
+        move_mobs_move(mob, gold);
+      } else if (mob.iq > 3 || rand() % 3 == 1) { // NOLINT
         // know where
-        if (abs(player.position.y_ax - mob.position.y_ax) >
-            abs(player.position.x_ax - mob.position.x_ax)) {
-          if (player.position.y_ax - mob.position.y_ax > 0) {
-            mob.position.y_ax++;
-          } else {
-            mob.position.y_ax--;
-          }
-        } else {
-          if (player.position.x_ax - mob.position.x_ax > 0) {
-            mob.position.x_ax++;
-          } else {
-            mob.position.x_ax--;
-          }
-        }
+        move_mobs_know_where(player, mob);
       } else {
         // dont know
-        int a = rand() % 4; // NOLINT
-        switch (a) {
-        case 0:
-          mob.position.x_ax--;
-          break;
-        case 1:
-          mob.position.x_ax++;
-          break;
-        case 2:
-          mob.position.y_ax--;
-          break;
-        case 3:
-          mob.position.y_ax++;
-          break;
-        default:
-          break;
-        }
+        move_mobs_dont_know(mob);
       }
     }
     if (isinSafezone(gold, mobs.mob[i].position.x_ax,
