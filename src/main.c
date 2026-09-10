@@ -70,20 +70,19 @@ int isequal(player_t player, gold_t gold) {
 }
 void isvictory(void) { printf("You won!"); }
 void islost(void) { printf("You lost!"); }
-player_t check_if_valid(player_t player) {
-  if (player.position.x_ax < 0) {
-    player.position.x_ax++;
+void check_if_valid(player_t *player) {
+  if (player->position.x_ax < 0) {
+    player->position.x_ax++;
   }
-  if (player.position.x_ax >= WIDTHEIGHT_OF_FIELD) {
-    player.position.x_ax--;
+  if (player->position.x_ax >= WIDTHEIGHT_OF_FIELD) {
+    player->position.x_ax--;
   }
-  if (player.position.y_ax < 0) {
-    player.position.y_ax++;
+  if (player->position.y_ax < 0) {
+    player->position.y_ax++;
   }
-  if (player.position.y_ax >= WIDTHEIGHT_OF_FIELD) {
-    player.position.y_ax--;
+  if (player->position.y_ax >= WIDTHEIGHT_OF_FIELD) {
+    player->position.y_ax--;
   }
-  return player;
 }
 plan_t fill_plan(plan_t plan, gold_t gold, player_t player, mobs_t mobs) {
   for (int y = 0; y < WIDTHEIGHT_OF_FIELD; y++) {
@@ -278,7 +277,7 @@ int main() {
     default:
       break;
     }
-    player = check_if_valid(player);
+    check_if_valid(&player); // POINTER
     plan = fill_plan(plan, gold, player, mobs);
     field_is_equal = isequal(player, gold);
     victory = isequal(player, gold);
