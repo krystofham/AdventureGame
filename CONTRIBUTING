@@ -1,0 +1,25 @@
+# How to Contribute to the Project
+
+Thank you for considering contributing to our project! Please follow these guidelines to keep the codebase clean and functional.
+
+## Project Structure
+
+* **.github/workflows/** – Contains GitHub Actions that automatically build the binary files.
+* **audits/** * `audit.py` – **Run this script before making a Pull Request.** It checks for naming conventions, potential errors, and formatting. If it passes successfully, it returns a JSON where everything is marked as `OK`.
+* **src/** – The core source code of the project.
+* **.future/** – The vision of the project. This is for long-term concepts and high-level ideas (specific features and bugs belong in GitHub Issues).
+* **tests/** – Automated tests. These run automatically alongside the audit script, so you don't need to run them manually.
+* **logs/** – System logs generated automatically if something goes wrong.
+
+---
+
+## Pre-PR Audits
+
+Before opening a Pull Request, you **must run** `audit.py`. It is designed to catch almost all possible errors before the code reaches the repository.
+
+1. **If the script returns a JSON with `OK` everywhere:** You are good to go! Feel free to create your Pull Request.
+2. **If the script flags an error, but you believe your code is correct:** Open the Pull Request anyway, but please include a detailed description. Explain **what** the script returned and **why** you think your code is correct.
+
+If you ever feel stuck or have any questions, don't hesitate to ask for help!
+
+*Created by Krystof Ham, 2026*
