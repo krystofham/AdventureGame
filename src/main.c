@@ -38,7 +38,7 @@ typedef struct {
   mob_t mob[NUMBER_OF_MOBS];
 } mobs_t;
 
-void draw_plan(plan_t plan) {
+void draw_plan(plan_t *plan) {
   // int xa, ya, gold_xa, gold_ya, player_xa, player_ya;
   // gold_xa = gold.position.x_ax;
   // gold_ya = gold.position.y_ax;
@@ -47,7 +47,7 @@ void draw_plan(plan_t plan) {
   for (int y = 0; y < WIDTHEIGHT_OF_FIELD; y++) {
     printf("\n");
     for (int x = 0; x < WIDTHEIGHT_OF_FIELD; x++) {
-      printf("%c", plan.row[y].field[x].fill);
+      printf("%c", plan->row[y].field[x].fill);
     }
   }
   printf("\n");
@@ -61,9 +61,9 @@ int get_direction() {
   }
   return c;
 }
-int isequal(player_t player, gold_t gold) {
-  if (player.position.x_ax == gold.position.x_ax &&
-      player.position.y_ax == gold.position.y_ax) {
+int isequal(player_t *player, gold_t *gold) {
+  if (player->position.x_ax == gold->position.x_ax &&
+      player->position.y_ax == gold->position.y_ax) {
     return 1;
   }
   return 0;
@@ -84,111 +84,113 @@ void check_if_valid(player_t *player) {
     player->position.y_ax--;
   }
 }
-plan_t fill_plan(plan_t plan, gold_t gold, player_t player, mobs_t mobs) {
+void fill_plan(plan_t *plan, gold_t *gold, player_t *player, mobs_t *mobs) {
   for (int y = 0; y < WIDTHEIGHT_OF_FIELD; y++) {
     for (int x = 0; x < WIDTHEIGHT_OF_FIELD; x++) {
-      if (player.position.x_ax == x && player.position.y_ax == y) {
-        plan.row[y].field[x].fill = 'P';
-      } else if (gold.position.x_ax == x && gold.position.y_ax == y) {
-        plan.row[y].field[x].fill = 'G';
+      if (player->position.x_ax == x && player->position.y_ax == y) {
+        plan->row[y].field[x].fill = 'P';
+      } else if (gold->position.x_ax == x && gold->position.y_ax == y) {
+        plan->row[y].field[x].fill = 'G';
       } else {
-        plan.row[y].field[x].fill = ' ';
+        plan->row[y].field[x].fill = ' ';
       }
       for (int mob = 0; mob < NUMBER_OF_MOBS; mob++) {
-        if (x == mobs.mob[mob].position.x_ax &&
-            y == mobs.mob[mob].position.y_ax) {
-          plan.row[y].field[x].fill = 'M';
+        if (x == mobs->mob[mob].position.x_ax &&
+            y == mobs->mob[mob].position.y_ax) {
+          plan->row[y].field[x].fill = 'M';
         }
       }
     }
   }
-  return plan;
 }
-int isinSafezone(gold_t gold, int positionX, int positionY) {
-  if (abs(gold.position.x_ax - positionX) < SAFEZONE &&
-      abs(gold.position.y_ax - positionY) < SAFEZONE) {
+int isinSafezone(gold_t *gold, int positionX, int positionY) {
+  if (abs(gold->position.x_ax - positionX) < SAFEZONE &&
+      abs(gold->position.y_ax - positionY) < SAFEZONE) {
     return 1;
   }
   return 0;
 }
-mob_t move_mobs_move(mob_t mob, gold_t gold) {
-  if (abs(gold.position.y_ax - mob.position.y_ax) >
-      abs(gold.position.x_ax - mob.position.x_ax)) {
-    if (gold.position.y_ax - mob.position.y_ax > 0) {
-      mob.position.y_ax++;
+void move_mobs_move(mob_t *mob, gold_t *gold) {
+  if (abs(gold->position.y_ax - mob->position.y_ax) >
+      abs(gold->position.x_ax - mob->position.x_ax)) {
+    if (gold->position.y_ax - mob->position.y_ax > 0) {
+      mob->position.y_ax++;
     } else {
-      mob.position.y_ax--;
+      mob->position.y_ax--;
     }
   } else {
-    if (gold.position.x_ax - mob.position.x_ax > 0) {
-      mob.position.x_ax++;
+    if (gold->position.x_ax - mob->position.x_ax > 0) {
+      mob->position.x_ax++;
     } else {
-      mob.position.x_ax--;
+      mob->position.x_ax--;
     }
   }
-  return mob;
 }
 
-mob_t move_mobs_know_where(player_t player, mob_t mob) {
-  if (abs(player.position.y_ax - mob.position.y_ax) >
-      abs(player.position.x_ax - mob.position.x_ax)) {
-    if (player.position.y_ax - mob.position.y_ax > 0) {
-      mob.position.y_ax++;
+void move_mobs_know_where(player_t *player, mob_t *mob) {
+  if (abs(player->position.y_ax - mob->position.y_ax) >
+      abs(player->position.x_ax - mob->position.x_ax)) {
+    if (player->position.y_ax - mob->position.y_ax > 0) {
+      mob->position.y_ax++;
     } else {
-      mob.position.y_ax--;
+      mob->position.y_ax--;
     }
   } else {
-    if (player.position.x_ax - mob.position.x_ax > 0) {
-      mob.position.x_ax++;
+    if (player->position.x_ax - mob->position.x_ax > 0) {
+      mob->position.x_ax++;
     } else {
-      mob.position.x_ax--;
+      mob->position.x_ax--;
     }
   }
-  return mob;
 }
-mob_t move_mobs_dont_know(mob_t mob) {
+void move_mobs_dont_know(mob_t *mob) {
   int a = rand() % 4; // NOLINT
   switch (a) {
   case 0:
-    mob.position.x_ax--;
+    if (mob->position.x_ax > 0) {
+      mob->position.x_ax--;
+    }
     break;
   case 1:
-    mob.position.x_ax++;
+    if (mob->position.x_ax < WIDTHEIGHT_OF_FIELD) {
+      mob->position.x_ax++;
+    }
     break;
   case 2:
-    mob.position.y_ax--;
+    if (mob->position.y_ax > 0) {
+      mob->position.y_ax--;
+    }
     break;
   case 3:
-    mob.position.y_ax++;
+    if (mob->position.y_ax < WIDTHEIGHT_OF_FIELD) {
+      mob->position.y_ax++;
+    }
     break;
   default:
     break;
   }
-  return mob;
 }
-mobs_t move_mobs(mobs_t mobs, gold_t gold, player_t player) {
+void move_mobs(mobs_t *mobs, gold_t *gold, player_t *player) {
   for (int i = 0; i < NUMBER_OF_MOBS; i++) {
-    mob_t mob = mobs.mob[i];
+    mob_t mob = mobs->mob[i];
     if (mob.speed > 3 || rand() % 2 == 1) { // NOLINT
       // move
       if (mob.iq > 5 || rand() % 6 == 1) { // NOLINT
-        move_mobs_move(mob, gold);
+        move_mobs_move(&mob, gold);
       } else if (mob.iq > 3 || rand() % 3 == 1) { // NOLINT
         // know where
-        move_mobs_know_where(player, mob);
+        move_mobs_know_where(player, &mob);
       } else {
         // dont know
-        move_mobs_dont_know(mob);
+        move_mobs_dont_know(&mob);
       }
     }
-    if (isinSafezone(gold, mobs.mob[i].position.x_ax,
-                     mobs.mob[i].position.y_ax)) {
-      int ygo = gold.position.y_ax;
-      int xgo = gold.position.x_ax;
-      int ymo = mobs.mob[i].position.y_ax;
-      int xmo = mobs.mob[i].position.x_ax;
-
-      //
+    if (isinSafezone(gold, mobs->mob[i].position.x_ax,
+                     mobs->mob[i].position.y_ax)) {
+      int ygo = gold->position.y_ax;
+      int xgo = gold->position.x_ax;
+      int ymo = mobs->mob[i].position.y_ax;
+      int xmo = mobs->mob[i].position.x_ax;
 
       if (abs(ygo - ymo) > SAFEZONE) {
         if (ygo - ymo > 0) {
@@ -204,14 +206,13 @@ mobs_t move_mobs(mobs_t mobs, gold_t gold, player_t player) {
         }
       }
     }
-    mobs.mob[i] = mob;
+    mobs->mob[i] = mob;
   }
-  return mobs;
 }
-int lost(player_t player, mobs_t mobs) {
+int lost(player_t *player, mobs_t *mobs) {
   for (int i = 0; i < NUMBER_OF_MOBS; i++) {
-    if (mobs.mob[i].position.x_ax == player.position.x_ax &&
-        mobs.mob[i].position.y_ax == player.position.y_ax) {
+    if (mobs->mob[i].position.x_ax == player->position.x_ax &&
+        mobs->mob[i].position.y_ax == player->position.y_ax) {
       return 1;
     }
   }
@@ -253,41 +254,43 @@ int main() {
       plan.row[y].field[x].y_ax = y;
     }
   }
-  plan = fill_plan(plan, gold, player, mobs);
+  fill_plan(&plan, &gold, &player, &mobs);
 
   int where;
   int field_is_equal;
   int victory;
   do {
-    draw_plan(plan);
+    draw_plan(&plan);
     where = get_direction();
     switch (where) {
-    case 97:
+    case 97: //s
       player.position.x_ax--;
       break;
-    case 115:
+    case 115: // w
       player.position.y_ax++;
       break;
-    case 100:
+    case 100: //d
       player.position.x_ax++;
       break;
-    case 119:
+    case 119://a
       player.position.y_ax--;
       break;
+    case 113://q
+      exit(0);
     default:
       break;
     }
-    check_if_valid(&player); // POINTER
-    plan = fill_plan(plan, gold, player, mobs);
-    field_is_equal = isequal(player, gold);
-    victory = isequal(player, gold);
+    check_if_valid(&player);
+    fill_plan(&plan, &gold, &player, &mobs);
+    field_is_equal = isequal(&player, &gold);
+    victory = isequal(&player, &gold);
     if (!field_is_equal) {
-      field_is_equal = lost(player, mobs);
-      victory = !lost(player, mobs);
+      field_is_equal = lost(&player, &mobs);
+      victory = !field_is_equal;
     }
-    mobs = move_mobs(mobs, gold, player);
+    move_mobs(&mobs, &gold, &player);
   } while (!field_is_equal);
-  draw_plan(plan);
+  draw_plan(&plan);
   if (victory) {
     isvictory();
   } else {

@@ -11,20 +11,23 @@ audit = {}
 PATH = "../src/main.c"
 GIT_REPO_PATH = ".."
 LOGS_PATH = "../logs/"
+
+
 def generateAudit(PATH, LOGS_PATH, GIT_REPO_PATH):
     global audit
     gccTest(PATH=PATH)
     logs(LOGS_PATH=LOGS_PATH)
-    checkGit(GIT_REPO_PATH = GIT_REPO_PATH)
+    checkGit(GIT_REPO_PATH=GIT_REPO_PATH)
     gitLeakes(GIT_REPO_PATH=GIT_REPO_PATH)
     checkNewDependencies(GIT_REPO_PATH=GIT_REPO_PATH)
     clangTidy(target_file=PATH)
     clangFormat(target_file=PATH)
     runLizard(target_file=PATH)
-    #valgrind()
-    #Magic Numbers
-    #integration test
-    #logic test
+    runValgrind()
+    # valgrind()
+    # Magic Numbers
+    # integration test
+    # logic test
     return print(audit)
 
 
@@ -60,12 +63,16 @@ def gccTest(PATH):
     if result.returncode != 0:
         print("Test ended with output of:", text)
         print("Compilation error. Abording request.")
-        write("compiler", f"Try run gcc -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Werror ../src/main.c -o test")
+        write(
+            "compiler",
+            f"Try run gcc -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Werror ../src/main.c -o test",
+        )
     else:
         print("compilation succesfull, continuing")
         write("compiler", f"OK {text}")
 
-def logs(LOGS_PATH = "../logs/"):
+
+def logs(LOGS_PATH="../logs/"):
     if os.path.exists("test"):
         os.chmod("test", 0o755)
         process = subprocess.Popen(["./test"])
@@ -91,8 +98,7 @@ def logs(LOGS_PATH = "../logs/"):
         write("Logs", "OK")
 
 
-
-def checkGit(GIT_REPO_PATH = ".."):
+def checkGit(GIT_REPO_PATH=".."):
     try:
         repo = git.Repo(GIT_REPO_PATH)
     except git.InvalidGitRepositoryError:
@@ -125,11 +131,18 @@ def checkGit(GIT_REPO_PATH = ".."):
         )
     else:
         write("Git", "OK")
-        
-def gitLeakes(GIT_REPO_PATH = ".."):
+
+
+def gitLeakes(GIT_REPO_PATH=".."):
     report_file = "leaks.json"
     # flag --format nahrazen za -r (report-path)
-    payload = ["gitleaks", "detect", f"--source={GIT_REPO_PATH}", f"-r={report_file}", "-v"]
+    payload = [
+        "gitleaks",
+        "detect",
+        f"--source={GIT_REPO_PATH}",
+        f"-r={report_file}",
+        "-v",
+    ]
 
     try:
         result = subprocess.run(payload, capture_output=True, text=True)
@@ -176,7 +189,8 @@ def gitLeakes(GIT_REPO_PATH = ".."):
 
     return False
 
-def checkNewDependencies(GIT_REPO_PATH = ".."):
+
+def checkNewDependencies(GIT_REPO_PATH=".."):
     valid_dependencies = {
         "stdio.h",
         "stdlib.h",
@@ -245,6 +259,7 @@ def checkNewDependencies(GIT_REPO_PATH = ".."):
         write("checkNewDependencies", "OK")
         return True
 
+
 def clangTidy(target_file="../src/main.c"):
     checks = "bugprone-*,clang-analyzer-*,cert-*"
 
@@ -280,6 +295,7 @@ def clangTidy(target_file="../src/main.c"):
         write("runClangTidy", "OK")
         return True
 
+
 def clangFormat(target_file="../src/main.c"):
     command = [
         "clang-format",
@@ -299,13 +315,15 @@ def clangFormat(target_file="../src/main.c"):
     if result.returncode != 0:
         print("Clang-Format detected code style violations!")
         write(
-            "runClangFormat", "Code style violation. Please run clang-format -i --style=LLVM src/main.c."
+            "runClangFormat",
+            "Code style violation. Please run clang-format -i --style=LLVM src/main.c.",
         )
         return False
     else:
         print("Code formatting is perfect")
         write("runClangFormat", "OK")
         return True
+
 
 def runLizard(target_file="../src/main.c", max_complexity=15):
     try:
@@ -324,9 +342,7 @@ def runLizard(target_file="../src/main.c", max_complexity=15):
             )
 
     if complex_functions:
-        print(
-            f"High cyclomatic complexity detected in: {', '.join(complex_functions)}"
-        )
+        print(f"High cyclomatic complexity detected in: {', '.join(complex_functions)}")
         write(
             "runLizard",
             f"Too complex functions found: {', '.join(complex_functions)}",
@@ -337,5 +353,49 @@ def runLizard(target_file="../src/main.c", max_complexity=15):
         write("runLizard", "OK")
         return True
 
+
+def runValgrind(target_binary="./test"):
+    if not os.path.exists(target_binary):
+        write("valgrind", "Binary file not found.")
+        return False
+
+    # Příkaz spustí program pod Valgrindem a zkontroluje memory leaky
+    command = [
+        "valgrind",
+        "--leak-check=full",
+        "--error-exitcode=1",  # Pokud najde leak, vrattí návratový kód 1
+        target_binary,
+    ]
+
+    try:
+        # Pozor: tvůj program čeká na getchar(), tak mu pošleme 'q' nebo EOF přes input
+        result = subprocess.run(
+            command,
+            input="q\n",
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except FileNotFoundError:
+        print("Valgrind is not installed.")
+        write("valgrind", "Valgrind executable not found.")
+        return False
+    except subprocess.TimeoutExpired:
+        print("Valgrind timed out (program waited for input too long).")
+        write("valgrind", "Timeout - program stuck in loop.")
+        return False
+
+    if result.returncode != 0:
+        print("Valgrind detected Memory Leaks!")
+        print(result.stderr)  # Zde Valgrind vypíše, kde jsi zapomněl free()
+        write("valgrind", "NOT OK - Memory leak detected!")
+        return False
+    else:
+        print("Valgrind passed: No memory leaks!")
+        write("valgrind", "OK")
+        return True
+
+
 if __name__ == "__main__":
     generateAudit(PATH, LOGS_PATH, GIT_REPO_PATH)
+
