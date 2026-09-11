@@ -2,6 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+
+int width_height;
+
 #define WIDTHEIGHT_OF_FIELD 10
 #define NUMBER_OF_MOBS 3
 #define SAFEZONE 2
@@ -38,12 +41,7 @@ typedef struct {
   mob_t mob[NUMBER_OF_MOBS];
 } mobs_t;
 
-void draw_plan(plan_t *plan) {
-  // int xa, ya, gold_xa, gold_ya, player_xa, player_ya;
-  // gold_xa = gold.position.x_ax;
-  // gold_ya = gold.position.y_ax;
-  // player_xa = player.position.x_ax;
-  // player_ya = player.position.y_ax;
+void draw_plan(const plan_t *plan) {
   for (int y = 0; y < WIDTHEIGHT_OF_FIELD; y++) {
     printf("\n");
     for (int x = 0; x < WIDTHEIGHT_OF_FIELD; x++) {
@@ -61,7 +59,7 @@ int get_direction() {
   }
   return c;
 }
-int isequal(player_t *player, gold_t *gold) {
+int isequal(const player_t *player, const gold_t *gold) {
   if (player->position.x_ax == gold->position.x_ax &&
       player->position.y_ax == gold->position.y_ax) {
     return 1;
@@ -84,7 +82,8 @@ void check_if_valid(player_t *player) {
     player->position.y_ax--;
   }
 }
-void fill_plan(plan_t *plan, gold_t *gold, player_t *player, mobs_t *mobs) {
+void fill_plan(plan_t *plan, const gold_t *gold, const player_t *player,
+               const mobs_t *mobs) {
   for (int y = 0; y < WIDTHEIGHT_OF_FIELD; y++) {
     for (int x = 0; x < WIDTHEIGHT_OF_FIELD; x++) {
       if (player->position.x_ax == x && player->position.y_ax == y) {
@@ -103,14 +102,14 @@ void fill_plan(plan_t *plan, gold_t *gold, player_t *player, mobs_t *mobs) {
     }
   }
 }
-int isinSafezone(gold_t *gold, int positionX, int positionY) {
+int isinSafezone(const gold_t *gold, int positionX, int positionY) {
   if (abs(gold->position.x_ax - positionX) < SAFEZONE &&
       abs(gold->position.y_ax - positionY) < SAFEZONE) {
     return 1;
   }
   return 0;
 }
-void move_mobs_move(mob_t *mob, gold_t *gold) {
+void move_mobs_move(mob_t *mob, const gold_t *gold) {
   if (abs(gold->position.y_ax - mob->position.y_ax) >
       abs(gold->position.x_ax - mob->position.x_ax)) {
     if (gold->position.y_ax - mob->position.y_ax > 0) {
@@ -127,7 +126,7 @@ void move_mobs_move(mob_t *mob, gold_t *gold) {
   }
 }
 
-void move_mobs_know_where(player_t *player, mob_t *mob) {
+void move_mobs_know_where(const player_t *player, mob_t *mob) {
   if (abs(player->position.y_ax - mob->position.y_ax) >
       abs(player->position.x_ax - mob->position.x_ax)) {
     if (player->position.y_ax - mob->position.y_ax > 0) {
@@ -152,7 +151,7 @@ void move_mobs_dont_know(mob_t *mob) {
     }
     break;
   case 1:
-    if (mob->position.x_ax < WIDTHEIGHT_OF_FIELD) {
+    if (mob->position.x_ax <= WIDTHEIGHT_OF_FIELD) {
       mob->position.x_ax++;
     }
     break;
@@ -162,7 +161,7 @@ void move_mobs_dont_know(mob_t *mob) {
     }
     break;
   case 3:
-    if (mob->position.y_ax < WIDTHEIGHT_OF_FIELD) {
+    if (mob->position.y_ax <= WIDTHEIGHT_OF_FIELD) {
       mob->position.y_ax++;
     }
     break;
@@ -170,7 +169,7 @@ void move_mobs_dont_know(mob_t *mob) {
     break;
   }
 }
-void move_mobs(mobs_t *mobs, gold_t *gold, player_t *player) {
+void move_mobs(mobs_t *mobs, const gold_t *gold, const player_t *player) {
   for (int i = 0; i < NUMBER_OF_MOBS; i++) {
     mob_t mob = mobs->mob[i];
     if (mob.speed > 3 || rand() % 2 == 1) { // NOLINT
@@ -209,7 +208,7 @@ void move_mobs(mobs_t *mobs, gold_t *gold, player_t *player) {
     mobs->mob[i] = mob;
   }
 }
-int lost(player_t *player, mobs_t *mobs) {
+int lost(const player_t *player, const mobs_t *mobs) {
   for (int i = 0; i < NUMBER_OF_MOBS; i++) {
     if (mobs->mob[i].position.x_ax == player->position.x_ax &&
         mobs->mob[i].position.y_ax == player->position.y_ax) {
@@ -263,19 +262,19 @@ int main() {
     draw_plan(&plan);
     where = get_direction();
     switch (where) {
-    case 97: //s
+    case 97: // s
       player.position.x_ax--;
       break;
     case 115: // w
       player.position.y_ax++;
       break;
-    case 100: //d
+    case 100: // d
       player.position.x_ax++;
       break;
-    case 119://a
+    case 119: // a
       player.position.y_ax--;
       break;
-    case 113://q
+    case 113: // q
       exit(0);
     default:
       break;
