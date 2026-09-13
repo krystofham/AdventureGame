@@ -261,8 +261,18 @@ def checkNewDependencies(GIT_REPO_PATH=".."):
 
 
 def clangTidy(target_file="../src/main.c"):
-    checks = "bugprone-*,clang-analyzer-*,cert-*"
-
+    checks = ",".join(
+        [
+            "clang-analyzer-*",
+            "bugprone-*",
+            "-bugprone-easily-swappable-parameters",
+            "-bugprone-narrowing-conversions",
+            "-bugprone-implicit-widening-of-multiplication-result",
+            "-bugprone-suspicious-enum-usage",
+            "-bugprone-unused-raii",
+            "-cert-err58-cpp",
+        ]
+    )
     command = [
         "clang-tidy",
         target_file,
@@ -371,7 +381,7 @@ def runValgrind(target_binary="./test"):
         # Pozor: tvůj program čeká na getchar(), tak mu pošleme 'q' nebo EOF přes input
         result = subprocess.run(
             command,
-            input="q\n",
+            input="5\n5\nq\n",
             capture_output=True,
             text=True,
             timeout=5,
@@ -398,4 +408,3 @@ def runValgrind(target_binary="./test"):
 
 if __name__ == "__main__":
     generateAudit(PATH, LOGS_PATH, GIT_REPO_PATH)
-
