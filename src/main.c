@@ -5,6 +5,17 @@
 
 #define SAFEZONE 2
 
+//YET to make - fog of war
+//Randim pozice
+//Bitové příznaky bunky
+//Nepouzivat abs, heuristicke fce
+//Djiskra
+//Raw terminal input
+// FIELD SHOULD HAVE bit operation 
+//      0001 - seen 
+//      0010 - blocked
+//      0100 - MINE or smt like that
+
 typedef struct {
   int x_ax;
   int y_ax;
@@ -32,6 +43,7 @@ typedef struct {
 int width_height;
 int mobs_num;
 
+int distance_to(field_t posA, field_t posB);
 void draw_plan(const plan_t *plan);
 int get_direction();
 int isequal(const player_t *player, const gold_t *gold);
@@ -87,7 +99,6 @@ int main() {
   }
   // define plan
 
-  // plan_t plan;
   plan_t *plan =
       malloc(sizeof *plan * (size_t)width_height * (size_t)width_height);
   if (plan == NULL) {
@@ -197,6 +208,10 @@ void check_if_valid(player_t *player) {
     player->position.y_ax--;
   }
 }
+int distance_to(const field_t posA, const field_t posB) {
+  int len = abs(posA.x_ax - posB.x_ax) + abs(posA.y_ax - posB.y_ax);  
+  return len;
+}
 void fill_plan(plan_t *plan, const gold_t *gold, const player_t *player,
                const mob_t *mobs) {
   int *p = malloc(sizeof(*p));
@@ -214,6 +229,9 @@ void fill_plan(plan_t *plan, const gold_t *gold, const player_t *player,
         if (x == mobs[mob].position.x_ax && y == mobs[mob].position.y_ax) {
           plan[*p].field.fill = 'M';
         }
+      }
+      if (distance_to(player->position, plan[*p].field) > 2) {
+        plan[*p].field.fill = '?';
       }
       (*p)++;
     }
