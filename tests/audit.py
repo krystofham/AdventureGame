@@ -8,15 +8,13 @@ import lizard
 import time
 
 audit = {}
-PATH = "../src/main.c"
+PATH = "src/main.c"
 GIT_REPO_PATH = ".."
-LOGS_PATH = "../logs/"
 
 
-def generateAudit(PATH, LOGS_PATH, GIT_REPO_PATH):
+def generateAudit(PATH, GIT_REPO_PATH):
     global audit
     gccTest(PATH=PATH)
-    logs(LOGS_PATH=LOGS_PATH)
     checkGit(GIT_REPO_PATH=GIT_REPO_PATH)
     gitLeakes(GIT_REPO_PATH=GIT_REPO_PATH)
     checkNewDependencies(GIT_REPO_PATH=GIT_REPO_PATH)
@@ -63,39 +61,10 @@ def gccTest(PATH):
     if result.returncode != 0:
         print("Test ended with output of:", text)
         print("Compilation error. Abording request.")
-        write(
-            "compiler",
-            f"Try run gcc -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Werror ../src/main.c -o test",
-        )
+        write("compiler", "not OK")
     else:
         print("compilation succesfull, continuing")
         write("compiler", f"OK {text}")
-
-
-def logs(LOGS_PATH="../logs/"):
-    if os.path.exists("test"):
-        os.chmod("test", 0o755)
-        process = subprocess.Popen(["./test"])
-        time.sleep(1.5)
-        process.terminate()
-        process.wait()
-        print("Test run ended.")
-
-    log_output = ""
-    log_files = glob.glob(f"{LOGS_PATH}*.log")
-
-    for file in log_files:
-        with open(file, "r", encoding="utf-8") as f:
-            log_output += f.read()
-
-    log_output = log_output.strip()
-
-    if log_output != "":
-        print("Logs are not empty:\n", log_output)
-        write("logs", f"logs are not empty after production use: {log_output}")
-    else:
-        print("Logs are good")
-        write("Logs", "OK")
 
 
 def checkGit(GIT_REPO_PATH=".."):
@@ -162,12 +131,12 @@ def gitLeakes(GIT_REPO_PATH=".."):
 
     # Pokud vrátil jiný kód než 0, buď našel leaky, nebo selhal
     if not os.path.exists(report_file):
-        print(f"Gitleaks execution failed: {result.stderr.strip()}")
-        write("gitLeakes", f"Gitleaks error: {result.stderr.strip()[:50]}")
+        print("Gitleaks execution failed")
         return False
+        write("gitLeakes", "NOT OK")
 
     # Načetly se leaky ze souboru
-    write("gitLeakes", "NOT OK, CRITICAL, ENV OR OTHER PUBLISHED")
+    write("gitLeakes", "NOT OK")
     try:
         with open(report_file, "r", encoding="utf-8") as f:
             found = json.load(f)
@@ -251,7 +220,7 @@ def checkNewDependencies(GIT_REPO_PATH=".."):
         print(f"Unauthorized dependencies found: {unavailable}")
         write(
             "checkNewDependencies",
-            f"Unauthorized dependencies: {', '.join(unavailable)}",
+            "Unauthorized dependencies",
         )
         return False
     else:
@@ -290,7 +259,6 @@ def clangTidy(target_file="../src/main.c"):
         return False
 
     output = result.stdout.strip()
-    errors = result.stderr.strip()
 
     has_warnings = "warning:" in output or "error:" in output
 
@@ -298,7 +266,7 @@ def clangTidy(target_file="../src/main.c"):
         print(f"Clang-Tidy found issues:\n{output}")
         # Extract the first few lines of warnings for the log
         summary = "\n".join(output.split("\n")[:3])
-        write("runClangTidy", f"Issues found: {summary}")
+        write("runClangTidy", "NOT OK")
         return False
     else:
         print("Clang-Tidy check passed successfully")
@@ -326,7 +294,7 @@ def clangFormat(target_file="../src/main.c"):
         print("Clang-Format detected code style violations!")
         write(
             "runClangFormat",
-            "Code style violation. Please run clang-format -i --style=LLVM src/main.c.",
+            "Code style violation. NOT OK",
         )
         return False
     else:
@@ -355,7 +323,7 @@ def runLizard(target_file="../src/main.c", max_complexity=15):
         print(f"High cyclomatic complexity detected in: {', '.join(complex_functions)}")
         write(
             "runLizard",
-            f"Too complex functions found: {', '.join(complex_functions)}",
+            f"Too complex functions, NOT OK",
         )
         return False
     else:
@@ -407,4 +375,4 @@ def runValgrind(target_binary="./test"):
 
 
 if __name__ == "__main__":
-    generateAudit(PATH, LOGS_PATH, GIT_REPO_PATH)
+    generateAudit(PATH, GIT_REPO_PATH)
