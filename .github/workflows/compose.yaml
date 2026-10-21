@@ -18,8 +18,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Compile main.c
-      run: |
-        gcc src/main.c -o adventuregame
+      run: make
 
     # Tento krok vytvoří Release na GitHubu a nahraje do něj tvůj soubor
     - name: Create Release and Upload Asset
@@ -29,3 +28,9 @@ jobs:
         gh release create ${{ github.ref_name }} adventuregame \
           --title "Release ${{ github.ref_name }}" \
           --notes "Automaticky vygenerovaný release pro tag ${{ github.ref_name }}"
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Test
+      run: make test
+    
